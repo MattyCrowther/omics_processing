@@ -4,37 +4,63 @@ from read_alignment import reference_genome
 from read_alignment import align_reads
 from quality_control import perform_qc
 from genomics.variants.callers import freebayes
-from qc.variant import validate
-from qc.variant import stats
-from qc.variant import count_variant_types
-from qc.variant import qual_distribution
+from genomics.variants.qc import validate
+from genomics.variants.qc import stats
+from genomics.variants.qc import count_variant_types
+from genomics.variants.qc import qual_distribution
+from genomics.variants.qc import qual_distribution
+
+from genomics.variants.filters import quality_and_depth
+from genomics.variants.filters import low_af_and_mq
+from genomics.variants.filters import strand_bias
+from genomics.variants.filters import max_depth_filter
+from genomics.variants.filters import strict_high_confidence
+from genomics.variants.filters import sample_coverage
+
+from genomics.variants.normalisation import normalize
+from genomics.variants.normalisation import index
+
+from genomics.variants.annotate import tidy_fields
+from genomics.variants.annotate import sort
+
 # READS
 base_dir = Path("yeast")
 
-'''
+
 read_1,read_2 = get_sequence("SRR34533466",base_dir=base_dir)
 
 # GENOME ALIGN
 ref_url = ("ftp://ftp.ensembl.org/pub/release-109/fasta/saccharomyces_cerevisiae/dna/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa.gz")
-anno_url = ("ftp://ftp.ensemblgenomes.org/pub/fungi/release-56/gtf/saccharomyces_cerevisiae/Saccharomyces_cerevisiae.R64-1-1.56.gtf.gz")
-fa_path,anno_path = reference_genome(ref_url,anno_url,base_dir=base_dir)
-
+fa_path = reference_genome(ref_url,base_dir=base_dir)
 final_bam = align_reads(fa_path,read_1,read_2,base_dir=base_dir)
 
 # QC
-perform_qc(final_bam,fa_path)
-'''
+#perform_qc(final_bam,fa_path)
+vcf_dir = base_dir / "vcf"
+output_vcf = vcf_dir / "variants_raw.vcf"
+v_qc_out = vcf_dir / "qc" / "variants"
 
-'''
-final_bam = "yeast/aln_sorted_dedup.bam"
-fa_path = "yeast/ref/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa"
-print(final_bam,fa_path)
-'''
-output_vcf= base_dir/"variants_raw.vcf"
-#freebayes(final_bam,fa_path,output_vcf=output_vcf)
+freebayes(final_bam, fa_path, output_vcf=output_vcf)
+# Filter by QUAL and INFO/DP 
+vcf1 = quality_and_depth(output_vcf)
+vcf2 = low_af_and_mq(vcf1,af_thresh=0.8)
+vcf3 = strand_bias(vcf2)
+norm_vcf = normalize(vcf3, fa_path)
+tidied_vcf = tidy_fields(norm_vcf)
+sorted_vcf = sort(tidied_vcf)
+index(sorted_vcf)
+final_vcf = sorted_vcf
+# Perform QC
+validate(final_vcf)
+stats(final_vcf, v_qc_out / "stats.txt")
+rv = count_variant_types(final_vcf, v_qc_out / "variant_type_count.txt")
+qual_distribution(final_vcf, v_qc_out / "qual_distribution.png")
 
-v_qc_out = Path("yeast/qc/variants")
-validate(output_vcf)
-stats(output_vcf,v_qc_out/"stats.txt")
-rv = count_variant_types(output_vcf,v_qc_out/"variant_type_count.txt")
-qual_distribution(output_vcf,v_qc_out/"qual_distribution.png")
+
+intermediate_files = [
+    vcf1, vcf2, vcf3, norm_vcf, tidied_vcf, sorted_vcf,
+    vcf1.with_suffix(".vcf.csi"), vcf1.with_suffix(".vcf.idx")
+]
+for f in intermediate_files:
+    if Path(f).exists():
+        Path(f).unlink()

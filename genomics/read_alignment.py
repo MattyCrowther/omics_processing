@@ -15,7 +15,7 @@ from converter import mark_duplicates
 
 
     
-def reference_genome(ref_url, anno_url, base_dir=Path(".")):
+def reference_genome(ref_url, base_dir=Path(".")):
     """Download and prepare reference genome and annotation under base_dir/ref/."""
     ref_dir = base_dir / "ref"
     
@@ -25,12 +25,7 @@ def reference_genome(ref_url, anno_url, base_dir=Path(".")):
     fa_path = decompress_gzip(gz_path)
     print(f"Indexing: {fa_path}")
     alignment_index(fa_path)
-
-    anno_filename = os.path.basename(anno_url)
-    print(f"Downloading annotation: {anno_filename}")
-    annotation_path = download_reference_genome(anno_url, anno_filename, target_dir=ref_dir)
-    anno_path = decompress_gzip(annotation_path)
-    return Path(fa_path), Path(anno_path)
+    return Path(fa_path)
 
 def align_reads(fa_path, read1, read2,base_dir=Path(".")):
     sam_filename = base_dir/"aln.sam"

@@ -43,7 +43,7 @@ def multi_qc(target_dir, output_dir=None):
         output_dir.mkdir(exist_ok=True)
         cmd.extend(["-o", str(output_dir)])
     else:
-        output_dir = Path.cwd()
+        output_dir = target_dir
     subprocess.run(cmd, check=True)
     return output_dir
 

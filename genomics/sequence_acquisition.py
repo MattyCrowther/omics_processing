@@ -29,7 +29,6 @@ def get_sequence(identifier, base_dir=Path("."), do_trimming=True):
     trimmed_dir = base_dir / TRIMMED_DIR
     qc_dir = base_dir / QC_DIR
 
-    sra_metadata(identifier)
     download_sra(identifier, raw_dir)
     raw_fastqs = detect_fastq_files(identifier, raw_dir)
 

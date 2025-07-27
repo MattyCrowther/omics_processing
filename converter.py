@@ -68,5 +68,3 @@ def mark_duplicates(input_bam):
             print(f"Deleted intermediate: {f}")
 
     return str(dedup_bam)
-
-
