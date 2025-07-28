@@ -9,3 +9,5 @@
 
 # Allow this .gitignore file
 !.gitignore
+!README
+!docs/processing_genomics_overview.png
